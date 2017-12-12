@@ -1,0 +1,294 @@
+##########################################################
+## Function for calculating Bayesian robustness indices ##
+##########################################################
+
+#################################################################################################
+## In bareg you can either specify your own threshold or use the default statistical threshold ##
+#################################################################################################
+
+################################################################################################
+## Function to calculate the necessary statistics: normal distribution with mean and variance ## 
+## also the probabilty of invalidating an inference                                           ##                                      
+################################################################################################
+
+bareg=function(obzz,unzz,obzw,unzw,obzy,unzy,obwy,unwy,obww,unww,n,n0,dimz,t,sigma,type){
+obzz=matrix(obzz,nrow=dimz,ncol=dimz,byrow=T)
+unzz=matrix(unzz,nrow=dimz,ncol=dimz,byrow=T)
+obzw=matrix(obzw,nrow=dimz,ncol=1,byrow=T)
+unzw=matrix(unzw,nrow=dimz,ncol=1,byrow=T)
+obzy=matrix(obzy,nrow=dimz,ncol=1,byrow=T)
+unzy=matrix(unzy,nrow=dimz,ncol=1,byrow=T)
+szz=(n0*unzz+n*obzz)/(n+n0)
+szw=(n0*unzw+n*obzw)/(n+n0)
+swz=(n0*t(unzw)+n*t(obzw))/(n+n0)
+swy=(n0*unwy+n*obwy)/(n+n0)
+sww=(n0*unww+n*obww)/(n+n0)
+szy=(n0*unzy+n*obzy)/(n+n0)
+mean=as.numeric(solve(sww-swz%*%solve(szz)%*%szw)%*%(swy-swz%*%solve(szz)%*%szy))
+variance=as.numeric(sigma^2*solve(sww-swz%*%solve(szz)%*%szw)/(n+n0))
+if (type==1){
+if (t=='stat'){
+t=1.96*sqrt(variance)
+p=pnorm(t,mean,sqrt(variance))
+}else{
+p=pnorm(t,mean,sqrt(variance))
+}}else{
+if (t=='stat'){
+t=-1.96*sqrt(variance)
+p=1-pnorm(t,mean,sqrt(variance))
+}else{
+p=1-pnorm(t,mean,sqrt(variance))
+}}
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+print(k)
+}
+
+bareg(obzz=45.6^2,unzz=45.6^2,obzw=0.39,unzw=0.39,obzy=1832.2,unzy=1832.2,obwy=2.33,unwy=0,obww=0.25,unww=0.25,
+n=49,n0=52,dimz=1,t='stat',sigma=sqrt(32),type=1)
+
+kk=mat.or.vec(1,296)
+ss=seq(5,300,by=1)
+for (i in 1:296){
+out=bareg(obzz=45.6^2,unzz=45.6^2,obzw=0.39,unzw=0.39,obzy=1832.2,unzy=1832.2,obwy=2.33,unwy=0,obww=0.25,unww=0.25,
+n=49,n0=ss[i],dimz=1,t='stat',sigma=sqrt(32),type=1)
+kk[i]=out[3]
+}
+plot(ss,kk,type="l",xlab="The unobserved sample size",ylab="Probability of invalidating an inference")
+abline(h=0.5,lty=2)
+abline(v=91,lty=2)
+
+#########################################
+## How to find a threshold in this case##
+#########################################
+
+threshold_p=seq(0.1,0.9,by=0.1)
+threshold_n0=mat.or.vec(1,9)
+for (i in 1:9){
+threshold_n0[i]=4+which.max(which(kk<threshold_p[i]))
+}
+threshold_n0
+
+## Double Check 
+dc=function(x){
+pnorm(1.96-40.36/sqrt(x+49)+0.12*sqrt(x+49))
+}
+kk=mat.or.vec(1,296)
+ss=seq(5,300,by=1)
+for (i in 1:296){
+kk[i]=dc(ss[i])
+}
+lines(ss,kk,type="l",col='red')
+
+## Ideal sample estimate
+ides=function(x){
+456.68/(x+49)-1.375
+}
+ides(threshold_n0)
+
+###########################
+## For standardized data ##
+###########################
+
+baregr=function(obzz,unzz,obzw,unzw,obzy,unzy,obwy,unwy,n,n0,dimz,t,sigma,type){
+obzz=matrix(obzz,nrow=dimz,ncol=dimz,byrow=T)
+unzz=matrix(unzz,nrow=dimz,ncol=dimz,byrow=T)
+obzw=matrix(obzw,nrow=dimz,ncol=1,byrow=T)
+unzw=matrix(unzw,nrow=dimz,ncol=1,byrow=T)
+obzy=matrix(obzy,nrow=dimz,ncol=1,byrow=T)
+unzy=matrix(unzy,nrow=dimz,ncol=1,byrow=T)
+rzz=(n0*unzz+n*obzz)/(n+n0)
+rzw=(n0*unzw+n*obzw)/(n+n0)
+rwz=(n0*t(unzw)+n*t(obzw))/(n+n0)
+rwy=(n0*unwy+n*obwy)/(n+n0)
+rzy=(n0*unzy+n*obzy)/(n+n0)
+mean=as.numeric(solve(1-rwz%*%solve(rzz)%*%rzw)%*%(rwy-rwz%*%solve(rzz)%*%rzy))
+variance=as.numeric(sigma^2*solve(1-rwz%*%solve(rzz)%*%rzw)/(n+n0))
+if (type==1){
+if (t=='stat'){
+t=1.96*sqrt(variance)
+p=pnorm(t,mean,sqrt(variance))
+}else{
+p=pnorm(t,mean,sqrt(variance))
+}}else{
+if (t=='stat'){
+t=-1.96*sqrt(variance)
+p=1-pnorm(t,mean,sqrt(variance))
+}else{
+p=1-pnorm(t,mean,sqrt(variance))
+}}
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+print(k)
+}
+
+baregr(obzz=1,unzz=1,obzw=0.017,unzw=0.017,obzy=0.82,unzy=0.82,obwy=0.095,unwy=0,
+n=49,n0=52,dimz=1,t=0.03755102,sigma=32/(49^2),type=1)
+
+kk1=mat.or.vec(1,296)
+ss1=seq(5,300,by=1)
+for (i in 1:296){
+out1=baregr(obzz=1,unzz=1,obzw=0.017,unzw=0.017,obzy=0.82,unzy=0.82,obwy=0.095,unwy=0,
+n=49,n0=ss1[i],dimz=1,t='stat',sigma=32/(49^2),type=1)
+kk1[i]=out1[3]
+}
+lines(ss1,kk1,type="l",col='red')
+
+## Hong & Raudenbush 
+baregr(obzz=1,unzz=1,obzw=0.705,unzw=-0.705,obzy=-0.825,unzy=-0.825,obwy=-0.37,unwy=0,
+n=7639,n0=7639,dimz=1,t='stat',sigma=0.8,type=0)
+
+
+ss2=seq(0,1,by=0.0001)
+kk2=mat.or.vec(1,length(ss2))
+for (i in 1:length(ss2)){
+out1=baregr(obzz=1,unzz=1,obzw=0.705,unzw=-0.705,obzy=-0.825,unzy=-0.825,obwy=-0.37,unwy=ss2[i],
+n=7639,n0=7639,dimz=1,t='stat',sigma=0.8,type=0)
+kk2[i]=out1[3]
+}
+
+plot(ss2,kk2,type="l",xlab="The unobserved correlation between w and y",ylab="Probability of invalidating an inference")
+lines(ss2,pnorm(ss2*77.25-28.58),type='l',col='red')
+
+#########################################
+## How to find a threshold in this case##
+#########################################
+
+threshold_p=seq(0.1,0.9,by=0.1)
+threshold_r=mat.or.vec(1,length(threshold_p))
+for (i in 1:length(threshold_p)){
+threshold_r[i]=which.max(which(kk2<threshold_p[i]))
+}
+
+##############################################################################################################################################################################
+##############################################################################################################################################################################
+########################################################################## Graphical Section #################################################################################
+##############################################################################################################################################################################
+##############################################################################################################################################################################
+
+
+#################################
+## A bareg function with graph ##
+#################################
+
+bareg_graph=function(obzz,unzz,obzw,unzw,obzy,unzy,obwy,unwy,obww,unww,n,n0,dimz,sigma,type){
+obzz=matrix(obzz,nrow=dimz,ncol=dimz,byrow=T)
+unzz=matrix(unzz,nrow=dimz,ncol=dimz,byrow=T)
+obzw=matrix(obzw,nrow=dimz,ncol=1,byrow=T)
+unzw=matrix(unzw,nrow=dimz,ncol=1,byrow=T)
+obzy=matrix(obzy,nrow=dimz,ncol=1,byrow=T)
+unzy=matrix(unzy,nrow=dimz,ncol=1,byrow=T)
+szz=(n0*unzz+n*obzz)/(n+n0)
+szw=(n0*unzw+n*obzw)/(n+n0)
+swz=(n0*t(unzw)+n*t(obzw))/(n+n0)
+swy=(n0*unwy+n*obwy)/(n+n0)
+sww=(n0*unww+n*obww)/(n+n0)
+szy=(n0*unzy+n*obzy)/(n+n0)
+mean=as.numeric(solve(sww-swz%*%solve(szz)%*%szw)%*%(swy-swz%*%solve(szz)%*%szy))
+variance=as.numeric(sigma^2*solve(sww-swz%*%solve(szz)%*%szw)/(n+n0))
+if (type==1){
+t=1.96*sqrt(variance)
+p=pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(mean-4*sqrt(variance),seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),1.96*sqrt(variance))
+cy=c(0,dnorm(seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(-4*sqrt(variance),mean+4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Regression Coefficient of the Treatment Indicator',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,2),sep=' '))
+}else{
+t=-1.96*sqrt(variance)
+p=1-pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(-1.96*sqrt(variance),seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean+4*sqrt(variance))
+cy=c(0,dnorm(seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(mean-4*sqrt(variance),4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Regression Coefficient of the Treatment Indicator',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,2),sep=' '))
+}
+}
+
+bareg_graph(obzz=45.6^2,unzz=45.6^2,obzw=0.39,unzw=0.39,obzy=1832.2,unzy=1832.2,obwy=2.33,unwy=0,obww=0.25,unww=0.25,
+n=49,n0=52,dimz=1,sigma=sqrt(32),type=1)
+
+
+baregr_graph=function(obzz,unzz,obzw,unzw,obzy,unzy,obwy,unwy,n,n0,dimz,sigma,type){
+obzz=matrix(obzz,nrow=dimz,ncol=dimz,byrow=T)
+unzz=matrix(unzz,nrow=dimz,ncol=dimz,byrow=T)
+obzw=matrix(obzw,nrow=dimz,ncol=1,byrow=T)
+unzw=matrix(unzw,nrow=dimz,ncol=1,byrow=T)
+obzy=matrix(obzy,nrow=dimz,ncol=1,byrow=T)
+unzy=matrix(unzy,nrow=dimz,ncol=1,byrow=T)
+rzz=(n0*unzz+n*obzz)/(n+n0)
+rzw=(n0*unzw+n*obzw)/(n+n0)
+rwz=(n0*t(unzw)+n*t(obzw))/(n+n0)
+rwy=(n0*unwy+n*obwy)/(n+n0)
+rzy=(n0*unzy+n*obzy)/(n+n0)
+mean=as.numeric(solve(1-rwz%*%solve(rzz)%*%rzw)%*%(rwy-rwz%*%solve(rzz)%*%rzy))
+variance=as.numeric(sigma^2*solve(1-rwz%*%solve(rzz)%*%rzw)/(n+n0))
+if (type==1){
+t=1.96*sqrt(variance)
+p=pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(mean-4*sqrt(variance),seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),1.96*sqrt(variance))
+cy=c(0,dnorm(seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(-4*sqrt(variance),mean+4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Regression Coefficient of the Treatment Indicator',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,4),sep=' '))
+}else{
+t=-1.96*sqrt(variance)
+p=1-pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(-1.96*sqrt(variance),seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean+4*sqrt(variance))
+cy=c(0,dnorm(seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(mean-4*sqrt(variance),4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Regression Coefficient of the Treatment Indicator',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,4),sep=' '))
+}
+}
+
+baregr_graph(obzz=1,unzz=1,obzw=0.705,unzw=-0.705,obzy=-0.825,unzy=-0.825,obwy=-0.37,unwy=0,
+n=7639,n0=7639,dimz=1,sigma=0.8,type=0)
+
+## An example of juxtapose 9 graphs for Borman and Hong & Raudenbush
+par(mfrow=c(3,3))
+borman=c(36,51,64,77,91,107,126,152,195)
+hong=c(0.328,0.3337,0.3378,0.3413,0.3446,0.3479,0.3514,0.3555,0.3612)
+for (i in 1:9){
+bareg_graph(obzz=45.6^2,unzz=45.6^2,obzw=0.39,unzw=0.39,obzy=1832.2,unzy=1832.2,obwy=2.33,unwy=0,obww=0.25,unww=0.25,
+n=49,n0=borman[i],dimz=1,sigma=sqrt(32),type=1)
+}
+for (i in 1:9){
+baregr_graph(obzz=1,unzz=1,obzw=0.705,unzw=-0.705,obzy=-0.825,unzy=-0.825,obwy=-0.37,unwy=hong[i],
+n=7639,n0=7639,dimz=1,sigma=0.8,type=0)
+}
+
+## Make animated plot (GIF file)
+library(animation)
+ani.options(interval=0.05)
+saveGIF({
+x=seq(2,240,by=1)
+for (i in 1:length(x)){
+bareg_graph(obzz=45.6^2,unzz=45.6^2,obzw=0.39,unzw=0.39,obzy=1832.2,unzy=1832.2,obwy=2.33,unwy=0,obww=0.25,unww=0.25,
+n=49,n0=x[i],dimz=1,sigma=sqrt(32),type=1)
+}
+})
+saveGIF({
+y=seq(0.32,0.37,by=0.0001)
+for (i in 1:length(y)){
+baregr_graph(obzz=1,unzz=1,obzw=0.705,unzw=-0.705,obzy=-0.825,unzy=-0.825,obwy=-0.37,unwy=y[i],
+n=7639,n0=7639,dimz=1,sigma=0.8,type=0)
+}
+})
+## Use saveHTML for movies

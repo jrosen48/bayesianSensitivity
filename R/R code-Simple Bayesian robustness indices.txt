@@ -1,0 +1,625 @@
+#####################################################
+## Basic Functions for calculating the probability ##
+#####################################################
+
+inbias=function(n,priorm,mean,var,pi,t,neg){
+posttv=var[1]/n
+postcv=var[2]/n
+posttm=(1-pi)*priorm[1]+pi*mean[1]
+postcm=pi*priorm[2]+(1-pi)*mean[2]
+postdif=posttm-postcm
+postvar=postcv+posttv
+postbias=mean[1]-mean[2]-postdif
+if(neg==T){
+if(t=='stat'){
+t=-1.96*sqrt(postvar)
+prob=pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+else{
+prob=pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+}
+else{
+if(t=='stat'){
+t=1.96*sqrt(postvar)
+prob=1-pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+else{
+prob=1-pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+}
+print(c(postdif,postvar^0.5,prob))
+}
+
+exbias=function(n,priorm,mean,var,pi,t,neg){
+posttv=pi*var[1]/n[1]
+postcv=pi*var[2]/n[2]
+posttm=(1-pi)*priorm[1]+pi*mean[1]
+postcm=(1-pi)*priorm[2]+pi*mean[2]
+postdif=posttm-postcm
+postvar=postcv+posttv
+postbias=mean[1]-mean[2]-postdif
+if(neg==T){
+if(t=='stat'){
+t=-1.96*sqrt(postvar)
+prob=pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+else{
+prob=pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+}
+else{
+if(t=='stat'){
+t=1.96*sqrt(postvar)
+prob=1-pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+else{
+prob=1-pnorm(mean[1]-mean[2]-t,postbias,postvar^0.5)
+}
+}
+print(c(postdif,postvar^0.5,prob))
+}
+
+## Double check with probit model
+inprob=function(n,alpha,priorc,mean,var,pi,t,neg){
+q=sqrt(n)/sqrt(sum(var))*(priorc*alpha+(sum(mean)-priorc)*pi-priorc*alpha*pi-mean[2]-t)
+if(neg==T){
+prob=pnorm(q)
+}
+else{
+prob=1-pnorm(q)
+}
+print(prob)
+}
+
+exprob=function(n,alpha,priorc,mean,var,pi,t,neg){
+q=1/sqrt(var[1]/n[1]+var[2]/n[2])*(priorc*alpha*pi^(-0.5)+(mean[1]-mean[2]+priorc)*pi^0.5-priorc*alpha*pi^0.5-(priorc+t)*pi^(-0.5))
+if(neg==T){
+prob=pnorm(q)
+}
+else{
+prob=1-pnorm(q)
+}
+print(prob)
+}
+
+###############################################################################
+## Use the logistic regression models as the approximations of probit models ##
+###############################################################################
+inlog=function(n,alpha,priorc,mean,var,pi,t,neg){
+q=sqrt(n)/sqrt(sum(var))*(priorc*alpha+(sum(mean)-priorc)*pi-priorc*alpha*pi-mean[2]-t)
+if(neg==T){
+prob=plogis(1.701*q)
+}
+else{
+prob=plogis(-1.701*q)
+}
+print(prob)
+}
+
+exlog=function(n,alpha,priorc,mean,var,pi,t,neg){
+q=1/sqrt(var[1]/n[1]+var[2]/n[2])*(priorc*alpha*pi^(-0.5)+(mean[1]-mean[2]+priorc)*pi^0.5-priorc*alpha*pi^0.5-(priorc+t)*pi^(-0.5))
+if(neg==T){
+prob=plogis(1.701*q)
+}
+else{
+prob=plogis(-1.701*q)
+}
+print(prob)
+}
+
+###################################################################################################################################################
+###################################################################################################################################################
+###################
+## Some Examples ##
+###################
+
+inbias(n=7639,priorm=c(45.2,45.2),mean=c(36.77,45.78),var=c(143.26,138.83),pi=0.0617,t=-1.33,neg=T)
+inbias(n=7639,priorm=c(45.2,45.2),mean=c(36.77,45.78),var=c(143.26,138.83),pi=0.0617,t='stat',neg=T) ## Statistical threshold is -0.3766446
+inprob(n=7639,alpha=1,priorc=45.2,mean=c(36.77,45.78),var=c(143.26,138.83),pi=0.0617,t=-1.33,neg=T)
+inlog(n=7639,alpha=1,priorc=45.2,mean=c(36.77,45.78),var=c(143.26,138.83),pi=0.0617,t=-1.33,neg=T)
+a=seq(0.9,1.1,by=0.001)
+p=seq(0,0.5,by=0.005)
+hong=mat.or.vec(length(a),length(p))
+for(i in 1:length(a)){
+   for(j in 1:length(p)){
+   hong[i,j]=inbias(n=7639,priorm=c(45.2*a[i],45.2),mean=c(36.77,45.78),var=c(143.26,138.83),pi=p[j],t='stat',neg=T)
+   }
+}
+## hong=as.vector(hong)
+plot(density(hong,from=0,to=1))
+plot(ecdf(hong))
+
+## Use function persp
+## Search surface plot
+## Zoom in a little bit 
+a=seq(0.95,1.05,by=0.001)
+p=seq(0.02,0.22,by=0.002)
+hong=mat.or.vec(length(a),length(p))
+for(i in 1:length(a)){
+   for(j in 1:length(p)){
+   hong[i,j]=inbias(n=7639,priorm=c(45.2*a[i],45.2),mean=c(36.77,45.78),var=c(143.26,138.83),pi=p[j],t=-1.33,neg=T)
+   }
+}
+contour(a,p,hong,xlab="Alpha",ylab="Proportion of treated cases")
+workpath="C:/Users/TENGLONG/Downloads/1.bmp"
+require(rgl)
+persp3d(x=a,y=p,z=hong)
+snapshot3d(filename=workpath,fmt="png")
+## Check the proportion of the probability exactly equal to 1
+length(which(hong==1))/length(hong)
+## Check the proportion of the probability exactly equal to 0
+length(which(hong==0))/length(hong)
+
+exbias(n=c(27,22),priorm=c(611.5,611.5),mean=c(615,607),var=c(45,45),pi=0.46,t=3.68,neg=F)
+exprob(n=c(27,22),alpha=1,priorc=611.5,mean=c(615,607),var=c(45,45),pi=0.46,t=3.68,neg=F)
+exlog(n=c(27,22),alpha=1,priorc=611.5,mean=c(615,607),var=c(45,45),pi=0.46,t=3.68,neg=F)
+a=seq(0.9,1.1,by=0.001)
+p=seq(0,1,by=0.01)
+borman=mat.or.vec(length(a),length(p))
+for(i in 1:length(a)){
+   for(j in 1:length(p)){
+   borman[i,j]=exbias(n=c(27,22),priorm=c(611.5*a[i],611.5),mean=c(615,607),var=c(45,45),pi=p[j],t=3.68,neg=F)
+   }
+}
+contour(a,p,borman,xlab="Alpha",ylab="Proportion of observed cases")
+workpath="C:/Users/TENGLONG/Downloads/1.bmp"
+persp3d(x=a,y=p,z=borman)
+snapshot3d(filename=workpath,fmt="png")
+borman=as.vector(borman)
+plot(ecdf(borman))
+plot(density(hong,from=0,to=1))
+lines(density(borman,from=0,to=1),lty=2)
+## Check the proportion of the probability exactly equal to 1
+length(which(borman==1))/length(borman)
+## Check the proportion of the probability exactly equal to 0
+length(which(borman==0))/length(borman)
+
+## Try to fit logistic regression model
+## Hong & Raudenbush
+a=seq(0.95,1.05,by=0.001)
+p=seq(0.02,0.22,by=0.002)
+t=expand.grid(a,p)
+names(t)=c("a","p")
+t=as.data.frame(cbind(t,hong=0))
+for(i in 1:nrow(t)){
+t[i,3]=inbias(n=7639,priorm=c(45.2*t[i,1],45.2),mean=c(36.77,45.78),var=c(143.26,138.83),pi=t[i,2],t=-1.33,neg=T)
+}
+mod=glm(hong~a*p,family=binomial(),data=t)
+summary(mod)
+hong1=fitted.values(mod)
+require(plot3D)
+
+## Example: Hong&Raudenbush with Logit models
+a=seq(0.9,1.1,by=0.001)
+p=seq(0.02,0.22,by=0.001)
+k=function(x,y){400.1*x+330.61*y-400.1*x*y-393.46}
+hong=outer(a,p,FUN="k")
+tt=logit(seq(0.1,0.9,by=0.1))
+contour(x=a,y=p,z=hong,levels=tt)
+## Example: Borman with Logit models
+a=seq(1.006,1.014,by=0.0001) ## Why use this set of values? Because it is undefined for the ratio in the boundary line function.  
+p=seq(0,1,by=0.01)
+borman=mat.or.vec(length(a),length(p))
+for(i in 1:length(a)){
+   for(j in 1:length(p)){
+   borman[i,j]=exbias(n=c(27,22),priorm=c(611.5*a[i],611.5),mean=c(615,607),var=c(45,45),pi=p[j],t=3.68,neg=F)
+   }
+}
+contour(a,p,borman,xlab="Alpha",ylab="Proportion of observed cases")
+
+######################################################################################################################################################
+######################################################################################################################################################
+
+
+##############################################################################################
+## Important:Calculating the threshold for one of pi and alpha given the other one is known ##
+##############################################################################################
+
+## Threshold for internal validity
+inths=function(n,type,value,priorc,mean,var,t,neg,p){
+f=sqrt(n)/sqrt(sum(var))
+t=ifelse(t=='stat',ifelse(neg==T,-1.96*sqrt(sum(var)/n),1.96*sqrt(sum(var)/n)),t)
+a=c(priorc,(sum(mean)-priorc),priorc,(mean[2]+t))
+if(neg==T){
+   if(type=="alpha"){
+   kk=((a[4]+qnorm(p)/f)-a[2]*value)/(a[1]-a[3]*value)
+   print(ifelse(kk>0,paste("alpha has to be smaller than ",kk),"Not Applicable"))
+   } else if(type=="pi"&a[3]*value>a[2]){
+   kk=(a[1]*value-(a[4]+qnorm(p)/f))/(a[3]*value-a[2])
+   print(ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"))
+   } else{
+   kk=(a[1]*value-(a[4]+qnorm(p)/f))/(a[3]*value-a[2])
+   print(ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"))
+   }
+}
+else{
+    if(type=="alpha"){
+    kk=(a[2]*value-(a[4]+qnorm(p)/f))/(a[3]*value-a[1])
+    print(ifelse(kk>0,paste("alpha has to be larger than ",kk),"Not Applicable"))
+    } else if(type=="pi"&a[3]*value>a[2]){
+    kk=(a[1]*value-(a[4]+qnorm(p)/f))/(a[3]*value-a[2])
+    print(ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"))
+    } else{
+    kk=(a[1]*value-(a[4]+qnorm(p)/f))/(a[3]*value-a[2])
+    print(ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"))
+    }
+}
+a=f*a
+names(a)=c("alpha","pi","alpha*pi","constant")
+print(a)
+}
+inths(n=7639,type="alpha",value=0.0617,priorc=45.2,mean=c(36.77,45.78),var=c(143.26,138.83),t=-1.33,neg=T,p=0.5)
+inths(n=7639,type="pi",value=1,priorc=45.2,mean=c(36.77,45.78),var=c(143.26,138.83),t=-1.33,neg=T,p=0.5)
+
+## Some alternative simple functions
+alths=function(n,priorc,mean,var,pi,t,neg,p){
+f=sqrt(n)/sqrt(sum(var))
+t=ifelse(t=='stat',ifelse(neg==T,-1.96*sqrt(sum(var)/n),1.96*sqrt(sum(var)/n)),t)
+a=c(priorc,(sum(mean)-priorc),priorc,(mean[2]+t))
+kk=((a[4]+qnorm(p)/f)-a[2]*pi)/(a[1]-a[3]*pi)
+kk=ifelse(neg==T,ifelse(kk>0,paste("alpha has to be smaller than ",kk),"Not Applicable"),ifelse(kk>0,paste("alpha has to be larger than ",kk),"Not Applicable"))
+print(kk)
+}
+
+piths=function(n,alpha,priorc,mean,var,t,neg,p){
+f=sqrt(n)/sqrt(sum(var))
+t=ifelse(t=='stat',ifelse(neg==T,-1.96*sqrt(sum(var)/n),1.96*sqrt(sum(var)/n)),t)
+a=c(priorc,(sum(mean)-priorc),priorc,(mean[2]+t))
+if(a[3]*alpha>a[2]){
+kk=(a[1]*alpha-(a[4]+qnorm(p)/f))/(a[3]*alpha-a[2])
+kk=ifelse(neg==T,ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"),ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"))
+} else{
+kk=(a[1]*alpha-(a[4]+qnorm(p)/f))/(a[3]*alpha-a[2])
+kk=ifelse(neg==T,ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"),ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"))
+}
+print(kk)
+}
+
+alths(n=7639,priorc=45.2,mean=c(36.77,45.78),var=c(143.26,138.83),pi=0.0617,t=-1.33,neg=T,p=0.5)
+piths(n=7639,alpha=1,priorc=45.2,mean=c(36.77,45.78),var=c(143.26,138.83),t=-1.33,neg=T,p=0.5)
+
+## Threshold for external validity
+root=function(a,b,c){
+if(b^2>4*a*c){
+root=c((-b-sqrt(b^2-4*a*c))/(2*a),(-b+sqrt(b^2-4*a*c))/(2*a))
+sol=ifelse(a>0,ifelse(max(root)>0&max(root)<1|min(root)>0&min(root)<1,paste("The square root of pi has to be in the range between ", max(min(root),0)," and ", min(max(root),1)),"Absolutely true, no threshold is needed"),
+ifelse(max(root)>0&max(root)<1|min(root)>0&min(root)<1,
+ifelse(max(root)<1&min(root)>0,paste("The square root of pi has to be in the range between ",0," and ",min(root), " and the range between ",max(root)," and ",1),
+ifelse(max(root)>1,paste("The square root of pi has to be smaller than ", min(root)),paste("The square root of pi has to be larger than ", max(root)))),
+"Impossible to attain the probability"))
+} else if(a>0){ 
+  sol="Impossible to attain the probability"
+} else {
+  sol="Absolutely true, no threshold is needed"
+}
+return(sol)
+}
+
+###################################
+## For non-statistical threshold ##
+###################################
+
+exths=function(n,type,value,priorc,mean,var,pi,t,neg,p){
+f=1/sqrt(var[1]/n[1]+var[2]/n[2])
+a=c(priorc,mean[1]-mean[2]+priorc,priorc,priorc+t)
+if(neg==T){
+   if(type=="alpha"){
+   kk=(a[4]*value^(-0.5)-(qnorm(p)/f)-a[2]*value^0.5)/(a[1]*(value^(-0.5)-value^0.5))
+   print(ifelse(kk>0,paste("alpha has to be smaller than ",kk),"Not Applicable"))
+   } else if(type=="pi"&p==0.5){
+   if(a[3]*value>a[2]){
+   kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+   print(ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"))
+   } else{
+   kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+   print(ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"))
+   }
+   } else if(type=="pi"&a[3]*value==a[2]){
+     kk=ifelse(qnorm(p)>0,ifelse(a[1]*value>a[4],paste("pi has to be larger than ",((a[1]*value-a[4])*(f/qnorm(p)))^2),"Absolutely true")
+    ,ifelse(a[1]*value<a[4],paste("pi has to be smaller than ",((a[1]*value-a[4])*(f/qnorm(p)))^2),"Impossible")) 
+   } else{
+     print(root(a[2]-a[3]*value,-qnorm(p)/f,a[1]*value-a[4]))
+   }
+}
+else{
+    if(type=="alpha"){
+    kk=(a[4]*value^(-0.5)-(qnorm(p)/f)-a[2]*value^0.5)/(a[1]*(value^(-0.5)-value^0.5))
+    print(ifelse(kk>0,paste("alpha has to be larger than ",kk),"Not Applicable"))
+    }else if(type=="pi"&p==0.5){
+    if(a[3]*value>a[2]){
+    kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+    print(ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"))
+    } else{
+    kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+    print(ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"))
+    }
+    } else if(type=="pi"&a[3]*value==a[2]){
+     kk=ifelse(qnorm(p)>0,ifelse(a[1]*value<a[4],paste("pi has to be larger than ",((a[1]*value-a[4])*(f/qnorm(p)))^2),"Absolutely true")
+    ,ifelse(a[1]*value>a[4],paste("pi has to be smaller than ",((a[1]*value-a[4])*(f/qnorm(p)))^2),"Impossible")) 
+     print(kk)
+    } else{
+     print(root(a[3]*value-a[2],-qnorm(p)/f,a[4]-a[1]*value))
+    }
+}
+a=f*a
+names(a)=c("alpha*pi^0.5","pi^0.5","alpha*pi^-0.5","pi^-0.5")
+print(a)
+}
+exths(n=c(27,22),type="alpha",value=0.46,priorc=611.5,mean=c(615,607),var=c(45,45),t=3.68,neg=F,p=0.5)
+exths(n=c(27,22),type="pi",value=1,priorc=611.5,mean=c(615,607),var=c(45,45),t=3.68,neg=F,p=0.3)
+
+###############################
+## For statistical threshold ##
+###############################
+
+exths_stat=function(n,type,value,priorc,mean,var,pi,neg,p){
+f=1/sqrt(var[1]/n[1]+var[2]/n[2])
+s=qnorm(p)-1.96
+a=c(priorc,mean[1]-mean[2]+priorc,priorc,priorc)
+if(neg==T){
+   if(type=="alpha"){
+   kk=(a[4]*value^(-0.5)-(s/f)-a[2]*value^0.5)/(a[1]*(value^(-0.5)-value^0.5))
+   print(ifelse(kk>0,paste("alpha has to be smaller than ",kk),"Not Applicable"))
+   } else if(type=="pi"&s==0){
+   if(a[3]*value>a[2]){
+   kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+   print(ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"))
+   } else{
+   kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+   print(ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"))
+   }
+   } else if(type=="pi"&a[3]*value==a[2]){
+     kk=ifelse(s>0,ifelse(a[1]*value>a[4],paste("pi has to be larger than ",((a[1]*value-a[4])*(f/s))^2),"Absolutely true")
+    ,ifelse(a[1]*value<a[4],paste("pi has to be smaller than ",((a[1]*value-a[4])*(f/s))^2),"Impossible")) 
+   } else{
+     print(root(a[2]-a[3]*value,-s/f,a[1]*value-a[4]))
+   }
+}
+else{
+    if(type=="alpha"){
+    kk=(a[4]*value^(-0.5)-(s/f)-a[2]*value^0.5)/(a[1]*(value^(-0.5)-value^0.5))
+    print(ifelse(kk>0,paste("alpha has to be larger than ",kk),"Not Applicable"))
+    }else if(type=="pi"&s==0){
+    if(a[3]*value>a[2]){
+    kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+    print(ifelse(kk>0&kk<1,paste("pi has to be smaller than ",kk),"Not Applicable"))
+    } else{
+    kk=(a[1]*value-a[4])/(a[3]*value-a[2])
+    print(ifelse(kk>0&kk<1,paste("pi has to be larger than ",kk),"Not Applicable"))
+    }
+    } else if(type=="pi"&a[3]*value==a[2]){
+     kk=ifelse(s>0,ifelse(a[1]*value<a[4],paste("pi has to be larger than ",((a[1]*value-a[4])*(f/s))^2),"Absolutely true")
+    ,ifelse(a[1]*value>a[4],paste("pi has to be smaller than ",((a[1]*value-a[4])*(f/s))^2),"Impossible")) 
+     print(kk)
+    } else{
+     print(root(a[3]*value-a[2],-s/f,a[4]-a[1]*value))
+    }
+}
+a=f*a
+names(a)=c("alpha*pi^0.5","pi^0.5","alpha*pi^-0.5","pi^-0.5")
+print(a)
+}
+
+exths_stat(n=c(27,22),type="alpha",value=0.46,priorc=611.5,mean=c(615,607),var=c(45,45),neg=F,p=0.5)
+exths_stat(n=c(27,22),type="pi",value=1,priorc=611.5,mean=c(615,607),var=c(45,45),neg=F,p=0.3)
+
+########################################
+## Double check with a list of values ##
+########################################
+
+a=seq(0.95,1.05,by=0.0001)
+values=mat.or.vec(1,length(a))
+for (i in 1:length(a)){
+s=inbias(n=7639,priorm=c(45.2*a[i],45.2),mean=c(36.77,45.78),var=c(143.26,138.83),pi=0.0617,t='stat',neg=T)
+values[i]=s[3]
+}
+plot(a,values,type='l',xlab='Alpha',ylab='Probability')
+
+b=seq(0.98,1.01,by=0.00001)
+values=mat.or.vec(1,length(b))
+for (i in 1:length(b)){
+s=exbias(n=c(27,22),priorm=c(611.5*b[i],611.5),mean=c(615,607),var=c(45,45),pi=0.46,t='stat',neg=F)
+values[i]=s[3]
+}
+plot(b,values,type='l')
+
+c=seq(0.0001,0.8,by=0.0001)
+values=mat.or.vec(1,length(c))
+for (i in 1:length(c)){
+s=exbias(n=c(27,22),priorm=c(611.5,611.5),mean=c(615,607),var=c(45,45),pi=c[i],t='stat',neg=F)
+values[i]=s[3]
+}
+plot(c,values,type='l')
+
+
+##############################################################################################################################################################################
+##############################################################################################################################################################################
+########################################################################## Graphical Section #################################################################################
+##############################################################################################################################################################################
+##############################################################################################################################################################################
+
+###########################
+## For internal validity ##
+###########################
+
+ingraph=function(priorm,mean,sd,n,lb,ub){
+library(truncnorm)
+unrt=rtruncnorm(n[2],a=lb,b=ub,mean=priorm[1],sd=sd[1])
+unrc=rtruncnorm(n[1],a=lb,b=ub,mean=priorm[2],sd=sd[2])
+obrt=rtruncnorm(n[1],a=lb,b=ub,mean=mean[1],sd=sd[1])
+obrc=rtruncnorm(n[2],a=lb,b=ub,mean=mean[2],sd=sd[2])
+unrt=priorm[1]+scale(unrt)*sd[1]
+unrc=priorm[2]+scale(unrc)*sd[2]
+obrt=mean[1]+scale(obrt)*sd[1]
+obrc=mean[2]+scale(obrc)*sd[2]
+rt=c(unrt,obrt)
+rc=c(unrc,obrc)
+par(mfrow=c(1,3))
+plot(density(unrt),main='Unobserved Sample')
+lines(density(unrc),lty=2)
+legend('topright',c('Treatment','Control'),lty=c(1,2),cex=0.8)
+plot(density(obrt),main='Observed Sample')
+lines(density(obrc),lty=2)
+legend('topright',c('Treatment','Control'),lty=c(1,2),cex=0.8)
+plot(density(rt),main='Ideal Sample')
+lines(density(rc),lty=2)
+legend('topright',c('Treatment','Control'),lty=c(1,2),cex=0.8)
+}
+
+###########################
+## For external validity ##
+###########################
+
+exgraph=function(priorm,mean,sd,n,pi,lb,ub){
+library(truncnorm)
+unrt=rtruncnorm(n[1]*(1-pi)/pi,a=lb,b=ub,mean=priorm[1],sd=sd[1])
+unrc=rtruncnorm(n[2]*(1-pi)/pi,a=lb,b=ub,mean=priorm[2],sd=sd[2])
+obrt=rtruncnorm(n[1],a=lb,b=ub,mean=mean[1],sd=sd[1])
+obrc=rtruncnorm(n[2],a=lb,b=ub,mean=mean[2],sd=sd[2])
+unrt=priorm[1]+scale(unrt)*sd[1]
+unrc=priorm[2]+scale(unrc)*sd[2]
+obrt=mean[1]+scale(obrt)*sd[1]
+obrc=mean[2]+scale(obrc)*sd[2]
+rt=c(unrt,obrt)
+rc=c(unrc,obrc)
+par(mfrow=c(1,3))
+plot(density(unrt),main='Unobserved Sample')
+lines(density(unrc),lty=2)
+legend('topright',c('Treatment','Control'),lty=c(1,2),cex=0.8)
+plot(density(obrt),main='Observed Sample')
+lines(density(obrc),lty=2)
+legend('topright',c('Treatment','Control'),lty=c(1,2),cex=0.8)
+plot(density(rt),main='Ideal Sample')
+lines(density(rc),lty=2)
+legend('topright',c('Treatment','Control'),lty=c(1,2),cex=0.8)
+}
+
+ingraph(priorm=c(45.2,45.2),mean=c(36.77,45.78),sd=c(143.26^0.5,138.83^0.5),n=c(7168,471),lb=10,ub=100)
+exgraph(priorm=c(611.5,611.5),mean=c(615,607),sd=c(45^0.5,45^0.5),n=c(27,22),pi=0.46,lb=400,ub=800)
+
+###############################################################################################
+## Present the probability of invalidating an inference in the context of hypothesis testing ##
+###############################################################################################
+
+inplot=function(priorm,obm,var,n,pi,neg){
+posttv=var[1]/n
+postcv=var[2]/n
+posttm=(1-pi)*priorm[1]+pi*obm[1]
+postcm=pi*priorm[2]+(1-pi)*obm[2]
+mean=posttm-postcm
+variance=postcv+posttv
+if(neg==1){
+t=-1.96*sqrt(variance)
+p=1-pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(-1.96*sqrt(variance),seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean+4*sqrt(variance))
+cy=c(0,dnorm(seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(mean-4*sqrt(variance),4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Simple Treatment Effect Estimate',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,2),sep=' '))
+} else{
+t=1.96*sqrt(variance)
+p=pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(mean-4*sqrt(variance),seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),1.96*sqrt(variance))
+cy=c(0,dnorm(seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(-4*sqrt(variance),mean+4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Simple Treatment Effect Estimate',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,2),sep=' '))
+}
+}
+
+inplot(priorm=c(45.2,45.2),obm=c(36.77,45.78),var=c(143.26,138.83),n=7639,pi=0.0617,neg=1)
+
+explot=function(priorm,mean,var,n,pi,neg){
+posttv=pi*var[1]/n[1]
+postcv=pi*var[2]/n[2]
+posttm=(1-pi)*priorm[1]+pi*mean[1]
+postcm=(1-pi)*priorm[2]+pi*mean[2]
+mean=posttm-postcm
+variance=postcv+posttv
+if(neg==1){
+t=-1.96*sqrt(variance)
+p=1-pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(-1.96*sqrt(variance),seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean+4*sqrt(variance))
+cy=c(0,dnorm(seq(-1.96*sqrt(variance),mean+4*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(mean-4*sqrt(variance),4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Simple Treatment Effect Estimate',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,2),sep=' '))
+} else{
+t=1.96*sqrt(variance)
+p=pnorm(t,mean,sqrt(variance))
+k=c(mean,variance,p)
+names(k)=c("mean","var","prob")
+cx=c(mean-4*sqrt(variance),seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),1.96*sqrt(variance))
+cy=c(0,dnorm(seq(mean-4*sqrt(variance),1.96*sqrt(variance),length.out=5000),mean,sqrt(variance)),0)
+curve(dnorm(x,0,sqrt(variance)),xlim=c(-4*sqrt(variance),mean+4*sqrt(variance)),main=paste(c('posterior mean is','posterior variance is','probability of invalidation is'),round(k,4),sep=' '),xlab='Simple Treatment Effect Estimate',ylab='Normal Density')
+curve(dnorm(x,mean,sqrt(variance)),xlim=c(mean-4*sqrt(variance),mean+4*sqrt(variance)),add=TRUE,col='red')
+polygon(cx,cy,col='skyblue')
+legend('topleft',legend=c('null hypothesis','posterior distribution','probability of invalidation'),col=c('black','red','skyblue'),lty=c(1,1,1),lwd=c(1,1,10),,bty='n',cex=0.8)
+text(t,0,paste('threshold is',round(t,2),sep=' '))
+}
+}
+
+explot(priorm=c(611.5,611.5),mean=c(615,607),var=c(45,45),n=c(27,22),pi=0.46,neg=0)
+
+
+## An example of juxtapose 9 graphs for Borman and Hong & Raudenbush
+par(mfrow=c(3,3))
+
+## pi_R is fixed at 0.46
+borman1=c(1.0017,0.9999,0.9987,0.9976,0.9966,0.9956,0.9945,0.9933,0.9915)
+
+## alpha is fixed at 1
+borman2=c(0.6095,0.4553,0.358,0.284,0.2228,0.1689,0.1195,0.0725,0.0267)
+
+## Hong & Raudenbush
+hong=c(1.0104,1.0124,1.0138,1.015,1.0162,1.0174,1.0186,1.02,1.022)
+
+for (i in 1:9){
+explot(priorm=c(611.5*borman1[i],611.5),mean=c(615,607),var=c(45,45),n=c(27,22),pi=0.46,neg=0)
+}
+
+for (i in 1:9){
+explot(priorm=c(611.5,611.5),mean=c(615,607),var=c(45,45),n=c(27,22),pi=borman2[i],neg=0)
+}
+
+for (i in 1:9){
+inplot(priorm=c(45.2*hong[i],45.2),obm=c(36.77,45.78),var=c(143.26,138.83),n=7639,pi=0.0617,neg=1)
+}
+
+par(mfrow=c(1,1))
+## Make animated plot (GIF file)
+library(animation)
+ani.options(interval=0.05)
+saveGIF({
+x=seq(1,1.03,by=0.0001)
+for (i in 1:length(x)){
+inplot(priorm=c(45.2*x[i],45.2),obm=c(36.77,45.78),var=c(143.26,138.83),n=7639,pi=0.0617,neg=1)
+}
+})
+saveGIF({
+y=seq(1,0.005,by=-0.005)
+for (i in 1:length(y)){
+explot(priorm=c(611.5,611.5),mean=c(615,607),var=c(45,45),n=c(27,22),pi=y[i],neg=0)
+}
+})
+saveGIF({
+z=seq(1.01,0.988,by=-0.0001)
+for (i in 1:length(z)){
+explot(priorm=c(611.5*z[i],611.5),mean=c(615,607),var=c(45,45),n=c(27,22),pi=0.46,neg=0)
+}
+})
+
+## Use saveHTML for movies
